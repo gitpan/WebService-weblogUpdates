@@ -1,5 +1,13 @@
 Revision history for Perl extension WebService::weblogUpdates.
 
+0.35	 Thu Oct 31 2002
+
+	 - Updated proxy URL for 'rssUpdate' method
+
+	 - Added t/004-transport.t
+
+	 - Updated POD
+
 0.34	 Mon Oct 28 2002
 
 	 - Added $pkg->rssUpdate() - so far XMLRPC is the only supported transport

@@ -11,32 +11,41 @@ WebService::weblogUpdates - methods supported by the UserLand weblogUpdates fram
  my $weblogs = WebService::weblogUpdates->new(transport=>"SOAP",debug=>0);
  $weblogs->ping("Perlblog","http://www.nospum.net/perlblog");
 
+ # Since the 'rssUpdate' method has only been 
+ # documented for the XML-RPC transport, we switch
+ # the internal widget.
+
+ $weblogs->Transport("XMLRPC");
+ $weblogs->rssUpdate("Aaronland","http://www.aaronland.net/weblog/rss");
+
 =head1 DESCRIPTION
 
 This package implements methods supported by the UserLand weblogUpdates framework, 
 for the weblogs.com website.
 
-=head1 NAMES
+=head1 ON NAMING THINGS
 
-This package was originally named to reflect the class that the original I<ping> 
+This package was originally named to reflect the class that the original I<ping>
 method lives in, weblogUpdates.
 
-Since then, other methods have been added that live in other classes or don't have 
-any class at all. I have no idea why.
+Since then, other methods have been added that live in different classes or don't
+have any parent class at all. I have no idea why, especially since the equivalent
+serTalk methods live in a 'weblogUpdates' class themselves. [1]
 
-So it goes, I guess.
+So it goes.
 
 =cut
 
 use strict;
-
 package WebService::weblogUpdates;
 
-$WebService::weblogUpdates::VERSION = '0.34';
+$WebService::weblogUpdates::VERSION = '0.35';
 
 use Carp;
 
-use constant HOST  => "http://rpc.weblogs.com";
+use constant HOST    => "http://rpc.weblogs.com";
+use constant RSSHOST => "http://rssrpc.weblogs.com";
+
 use constant PATH  => "/RPC2";
 use constant CLASS => "weblogUpdates";
 
@@ -165,6 +174,7 @@ sub ping {
     my @args = ();
 
     if ($self->{'__ima'} eq "Frontier::Client") {
+
       $meth = join(".",CLASS,PING);
       @args = (
 	       $self->_client()->string($args->{name}),
@@ -273,6 +283,11 @@ sub rssUpdate {
   my @args = ();
   
   if ($self->{'__ima'} eq "Frontier::Client") {
+
+    # grrrrr....
+    $self->_client()->{'url'} = RSSHOST.PATH;
+    $self->_client()->{'rq'}->url(RSSHOST.PATH);
+
     $meth = join(".",RSSUPDATE);
     @args = (
 	     $self->_client()->string($args->{name}),
@@ -281,6 +296,8 @@ sub rssUpdate {
   }
   
   elsif ($self->{'__ima'} eq "XMLRPC::Lite") {
+
+    $self->_client()->proxy(RSSHOST.PATH);
     $meth = join(".",RSSUPDATE);
     @args = (
 	     SOAP::Data->type(string=>$args->{name}),
@@ -637,11 +654,11 @@ sub characters {
 
 =head1 VERSION
 
-0.34
+0.35
 
 =head1 DATE
 
-October 28, 2002
+October 31, 2002
 
 =head1 SEE ALSO
 
@@ -650,6 +667,10 @@ http://www.weblogs.com
 http://www.xmlrpc.com/weblogsComForRss
 
 http://www.xmlrpc.com/discuss/msgReader$2014?mode=day
+
+=head1 FOOTNOTES
+
+[1] http://www.xmlrpc.com/weblogsComForRss#changes103002ByDw
 
 =head1 REQUIREMENTS
 
