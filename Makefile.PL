@@ -1,4 +1,4 @@
-use ExtUtils::MakeMaker;
+use CPAN::MakeMaker;
 
 WriteMakefile(
 	      'NAME'	=> 'WebService::weblogUpdates',
@@ -7,7 +7,7 @@ WriteMakefile(
 	       ABSTRACT => 'methods supported by the Userland weblogUpdates framework') : (),
 	      'VERSION_FROM' => 'lib/WebService/weblogUpdates.pm',
 	      'PREREQ_PM'    => {
+				 "Test::More"  => '0.41',
 				 Carp          => 0,
 				},
-	      dist	        => {COMPRESS => 'gzip', SUFFIX => 'tar.gz'},
 );

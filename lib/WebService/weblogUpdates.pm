@@ -6,12 +6,25 @@ WebService::weblogUpdates - methods supported by the UserLand weblogUpdates fram
 
 =head1 SUMMARY
 
+ use WebService::weblogUpdates;
+
  my $weblogs = WebService::weblogUpdates->new(transport=>"SOAP",debug=>0);
  $weblogs->ping("Perlblog","http://www.nospum.net/perlblog");
 
 =head1 DESCRIPTION
 
-This package implements methods supported by the UserLand weblogUpdates framework, for the weblogs.com website.
+This package implements methods supported by the UserLand weblogUpdates framework, 
+for the weblogs.com website.
+
+=head1 NAMES
+
+This package was originally named to reflect the class that the original I<ping> 
+method lives in, weblogUpdates.
+
+Since then, other methods have been added that live in other classes or don't have 
+any class at all. I have no idea why.
+
+So it goes, I guess.
 
 =cut
 
@@ -19,14 +32,16 @@ use strict;
 
 package WebService::weblogUpdates;
 
-$WebService::weblogUpdates::VERSION = '0.33';
+$WebService::weblogUpdates::VERSION = '0.34';
 
 use Carp;
 
 use constant HOST  => "http://rpc.weblogs.com";
 use constant PATH  => "/RPC2";
 use constant CLASS => "weblogUpdates";
-use constant PING  => "ping";
+
+use constant PING      => "ping";
+use constant RSSUPDATE => "rssUpdate";
 
 =head1 PACKAGE METHODS
 
@@ -212,13 +227,101 @@ sub ping {
     (! $res->{'flerror'}) ? return 1 : return 0;
 }
 
-=head2 $pkg->ping_message()
+=head2 $pkg->rssUpdate(\%args)
 
-Return the message that was sent with your last ping response.
+Ping the Userland servers and tell them your RSS feed has been updated.
+
+Valid arguments are a hash reference whose keys are :
+
+=over 4
+
+=item *
+
+B<name> 
+
+String. The name of your weblog. I<required>
+
+=item *
+
+B<url> 
+
+String. The URI of your weblog. I<required>
+
+=back
+
+This method is B<not> supported for the SOAP transport, although 
+it will be as soon as it is documented by UserLand.
+
+This method is B<not> supported for the REST transport.
 
 =cut
 
-sub ping_message {
+sub rssUpdate {
+  my $self = shift;
+  my $args = shift;
+
+  delete $self->{'_message'};
+
+  #
+  
+  if ((! $args->{name}) || (! $args->{url})) {
+    carp "You must specify both a weblog name and url";
+    return 0;
+  }
+  
+  my $meth = undef;
+  my @args = ();
+  
+  if ($self->{'__ima'} eq "Frontier::Client") {
+    $meth = join(".",RSSUPDATE);
+    @args = (
+	     $self->_client()->string($args->{name}),
+	     $self->_client()->string($args->{url}),
+	    );
+  }
+  
+  elsif ($self->{'__ima'} eq "XMLRPC::Lite") {
+    $meth = join(".",RSSUPDATE);
+    @args = (
+	     SOAP::Data->type(string=>$args->{name}),
+	     SOAP::Data->type(string=>$args->{url}),
+	    );
+  }
+  
+  elsif ($self->{'__ima'} eq "SOAP::Lite") {
+    carp "This method will be supported as soon as it is documented by UserLand.\n";
+    return 0;
+    #      $meth = RSSUPDATE;
+    #      @args = (
+    #	       SOAP::Data->name(weblogname=>$args->{name}),
+    #	       SOAP::Data->name(weblogurl=>$args->{url}),
+    #	      );
+  }
+  
+  elsif ($self->{'__ima'} eq "LWP::Simple") {
+    carp "This method is not supported for the REST transport.\n";
+    return 0;
+  }
+  
+  if (! $meth) {
+    carp "Unable to determine transport and method.";
+    return 0;
+  }
+  
+  my $res = $self->_do($meth,@args)
+    || &{ carp "Returned undef. Not good."; return 0; };
+  
+  $self->{'_message'} = $res->{message};
+  (! $res->{'flerror'}) ? return 1 : return 0;
+}
+
+=head2 $pkg->LastMessage()
+
+Return the response message that was sent with your last method call.
+
+=cut
+
+sub LastMessage {
   my $self = shift;
   (exists($self->{'_message'})) ? return $self->{'_message'} : return undef;
 }
@@ -263,6 +366,21 @@ sub Transport {
   
   return $self->{"_transport"};
 }
+
+=head1 DEPRECATED METHODS
+
+=head2 $pkg->ping_message()
+
+B<DEPRECATED> Please use $pkg->LastMessage() instead.
+
+=cut
+
+sub ping_message {
+  my $self = shift;
+  return $self->LastMessage();
+}
+
+# Private methods
 
 sub _do {
     my $self = shift;
@@ -344,41 +462,41 @@ sub _xmlrpc {
 }
 
 sub _soap {
-    my $self = shift;
-    my $args = { @_ };
-
-    if (! $self->{"_soap"}) {
-
-	my $class = "SOAP::Lite";
-	&_require($class) || return 0;
-
-	if ($SOAP::Lite::VERSION < 0.55) {
-	  carp 
-	    "SOAP::Lite version is $SOAP::Lite::VERSION\n".
-	    "Please upgrade to version 0.55 or higher.\n";
-	}
-
-	carp 
-	my $soap = $class->new() ||
-	    &{ carp $!; return 0; };
-
-	&_setup_soaplite($soap,$args);
-
-	#
-
-	$soap->proxy(join("/",HOST,CLASS));
-
-	$soap->on_action(
-			 sub{ 
-			   "\"/".CLASS."\"" 
-			 }
-			);
-
-	$self->{"_soap"} = $soap;
-	$self->{'__ima'} = ref($self->{"_soap"});
+  my $self = shift;
+  my $args = { @_ };
+  
+  if (! $self->{"_soap"}) {
+    
+    my $class = "SOAP::Lite";
+    &_require($class) || return 0;
+    
+    if ($SOAP::Lite::VERSION < 0.55) {
+      carp 
+	"SOAP::Lite version is $SOAP::Lite::VERSION\n".
+	  "Please upgrade to version 0.55 or higher.\n";
     }
-
-    return $self->{"_soap"};
+    
+    carp 
+      my $soap = $class->new() ||
+	&{ carp $!; return 0; };
+    
+    &_setup_soaplite($soap,$args);
+    
+    #
+    
+    $soap->proxy(join("/",HOST,CLASS));
+    
+    $soap->on_action(
+		     sub{ 
+		       "\"/".CLASS."\"" 
+		     }
+		    );
+    
+    $self->{"_soap"} = $soap;
+    $self->{'__ima'} = ref($self->{"_soap"});
+  }
+  
+  return $self->{"_soap"};
 }
 
 sub _setup_soaplite {
@@ -519,7 +637,7 @@ sub characters {
 
 =head1 VERSION
 
-0.33
+0.34
 
 =head1 DATE
 
@@ -528,6 +646,8 @@ October 28, 2002
 =head1 SEE ALSO
 
 http://www.weblogs.com
+
+http://www.xmlrpc.com/weblogsComForRss
 
 http://www.xmlrpc.com/discuss/msgReader$2014?mode=day
 

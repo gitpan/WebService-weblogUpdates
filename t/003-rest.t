@@ -27,7 +27,7 @@ isa_ok($weblogs,PACKAGE);
 
 ok($weblogs->ping({name=>PINGNAME,url=>PINGURL}),"ping for ".PINGURL);
 
-my $msg = $weblogs->ping_message();
+my $msg = $weblogs->LastMessage();
 ok($msg,$msg);
 
 ok($weblogs->ping({name=>PINGNAME,url=>PINGURL,changesurl=>PINGURL}),

@@ -6,3 +6,4 @@ t/000-transports.t
 t/001-xmlrpc.t
 t/002-soap.t
 t/003-rest.t
+CPAN/MakeMaker.pm

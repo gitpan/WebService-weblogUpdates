@@ -1,5 +1,17 @@
 Revision history for Perl extension WebService::weblogUpdates.
 
+0.34	 Mon Oct 28 2002
+
+	 - Added $pkg->rssUpdate() - so far XMLRPC is the only supported transport
+
+	 - Deprecated $pkg->ping_message() in favour of $pkg->LastMessage()
+
+	 - Updated .t files accordingly
+
+	 - Updated Makefile.PL to require Test::More and use CPAN::MakeMaker
+
+	 - Updated POD
+
 0.33	 Mon Oct 28 2002
 
 	 - Added hooks to use XMLRPC::Lite if Frontier::Client is not installed
